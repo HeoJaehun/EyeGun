@@ -25,13 +25,13 @@ int main()
     while(1)
     {
         cap >> src;
-
+        cv::cvtColor(src, src, CV_BGR2GRAY);
         cv::imshow("EyeGun", src);
 
         switch(cv::waitKey(1000/60))
         {
         case 27:
-            std::cout << "GoodBye" << std::endl;
+            std::cout << "GoodBye!!!" << std::endl;
             exit(0);
             break;
         }
