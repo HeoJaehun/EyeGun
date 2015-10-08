@@ -13,7 +13,10 @@ public:
     EyeGun();
     void init();
     void run();
+    void quit();
     void inputKeyboard();
+    int getScreenWidth();
+    int getScreenHeight();
 
     void tempSetFirstMotorVal(int val);
     void tempSetSecondMotorVal(int val);
@@ -26,6 +29,10 @@ private:
     Laser m_laser;
 
     int m_i_fps;
+    int m_i_screen_width;
+    int m_i_screen_height;
+
+    bool m_b_run;
 };
 
 #endif // EYEGUN_H
