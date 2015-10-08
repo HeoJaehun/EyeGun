@@ -16,7 +16,15 @@ CONFIG   += c++11
 TEMPLATE = app
 
 
-SOURCES += main.cpp
+SOURCES += main.cpp \
+    motor.cpp \
+    laser.cpp \
+    eyegun.cpp
 
-LIBS += -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc
+LIBS += -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lwiringPi
 INCLUDEPATH += /usr/local/include
+
+HEADERS += \
+    motor.h \
+    laser.h \
+    eyegun.h
