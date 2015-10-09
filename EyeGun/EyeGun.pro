@@ -19,7 +19,8 @@ TEMPLATE = app
 SOURCES += main.cpp \
     motor.cpp \
     laser.cpp \
-    eyegun.cpp
+    eyegun.cpp \
+    eyeguncalibrator.cpp
 
 LIBS += -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lwiringPi
 INCLUDEPATH += /usr/local/include
@@ -27,4 +28,5 @@ INCLUDEPATH += /usr/local/include
 HEADERS += \
     motor.h \
     laser.h \
-    eyegun.h
+    eyegun.h \
+    eyeguncalibrator.hpp

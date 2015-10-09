@@ -8,21 +8,38 @@ EyeGun eg;
 // temp
 static void onMouse(int event, int x, int y, int, void*)
 {
-    if(event == cv::EVENT_MOUSEMOVE)
+    switch(eg.getStatus())
     {
-        int screen_width = eg.getScreenWidth();
-        float f_temp = (float)x/screen_width;
-        int f_input = (int)(f_temp*180);
+    case CALIBRATE_MODE:
+        if (event == cv::EVENT_MOUSEMOVE)
+        {
+            std::cout << "Pos : (" << x << ", " << y << ")" << std::endl;
+        }
+        else if (event == cv::EVENT_LBUTTONDOWN)
+        {
+            eg.tempSetPoint(x, y);
+        }
+        break;
 
-        eg.tempSetFirstMotorVal(f_input);
+    case RUN_MODE:
+        if (event == cv::EVENT_MOUSEMOVE)
+        {
+            eg.tempSetPoint(x, y);
+//            int screen_width = eg.getScreenWidth();
+//            float f_temp = (float)x/screen_width;
+//            int f_input = (int)(f_temp*180);
 
-        int screen_height = eg.getScreenHeight();
-        float s_temp = (float)y/screen_height;
-        int s_input = (int)(s_temp*180);
+//            eg.tempSetFirstMotorVal(f_input);
 
-        eg.tempSetSecondMotorVal(s_input);
+//            int screen_height = eg.getScreenHeight();
+//            float s_temp = (float)y/screen_height;
+//            int s_input = (int)(s_temp*180);
 
-        std::cout << "Pos : (" << x << ", " << y << ")  input: (" << f_input << ", " << s_input << ")" << std::endl;
+//            eg.tempSetSecondMotorVal(s_input);
+
+//            std::cout << "Pos : (" << x << ", " << y << ")  input: (" << f_input << ", " << s_input << ")" << std::endl;
+        }
+        break;
     }
 
     if(event == cv::EVENT_LBUTTONDOWN)
@@ -36,6 +53,7 @@ int main()
     // temp
     cv::setMouseCallback("EyeGun", onMouse, 0);
 
+    eg.calibrate();
     eg.run();
     eg.quit();
 
