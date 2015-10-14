@@ -2,7 +2,6 @@
 
 EyeGun::EyeGun()
 {
-    m_b_run = true;
     m_i_fps = 60;
     m_i_screen_width = 500;
     m_i_screen_height = 500;
@@ -12,34 +11,26 @@ EyeGun::EyeGun()
 void EyeGun::init()
 {
 
-    m_motor_V.setup(18);
+    m_motor_V.setup(19);    // 13번 핀을 사용하기 위한 설정
+    m_motor_V.setup(PIN_MOTOR_V);
     m_motor_V.setLimit(50, 130);
     m_motor_V.setValue(90);
     m_motor_V.update();
 
-    m_motor_H.setup(19);  // 13번 핀을 사용하기 위한 설정
-    m_motor_H.setup(13);
+    m_motor_H.setup(PIN_MOTOR_H);
     m_motor_H.setLimit(60, 120);
     m_motor_H.setValue(90);
     m_motor_H.update();
 
-    m_laser.setup(15);
+    m_laser.setup(PIN_LASER);
+
+    m_switch.setup(PIN_SWITCH);
+    m_button.setup(PIN_BUTTON);
 
     m_calibrator.init();
     m_v_points.clear();
     m_v_angles.clear();
 
-    m_e_status = CALIBRATE_MODE;
-
-    m_frame = cv::Mat(m_i_screen_height, m_i_screen_width, CV_8UC1, cv::Scalar(0));
-
-    cv::namedWindow("EyeGun");
-
-}
-
-
-void EyeGun::calibrate()
-{
     eyeGunAngle angle;
     angle.thetaH = 60;
     angle.thetaV = 60;
@@ -48,6 +39,27 @@ void EyeGun::calibrate()
     angle.thetaV = 120;
     m_v_angles.push_back(angle);
 
+    m_e_status = WAIT_MODE;
+
+    m_frame = cv::Mat(m_i_screen_height, m_i_screen_width, CV_8UC1, cv::Scalar(0));
+
+    cv::namedWindow("EyeGun");
+
+}
+
+
+void EyeGun::wait()
+{
+    if(m_switch.check())
+    {
+        m_e_status = CALIBRATE_MODE;
+        return;
+    }
+}
+
+
+void EyeGun::calibrate()
+{
 
     /*
      *첫번째 점(왼쪽 상단) 데이터 입력
@@ -55,18 +67,15 @@ void EyeGun::calibrate()
     m_motor_H.setValue(m_v_angles[0].thetaH);   // 모터 위치 조정
     m_motor_H.update();
     m_motor_V.setValue(m_v_angles[0].thetaV);   // 모터 위치 조정
-    m_motor_V.update();;
+    m_motor_V.update();
 
-    m_b_wait = true; // 데이터가 들오올 때 까지 기다림
-    while(m_b_wait)
+    m_b_wait_for_calib = true; // 데이터가 들오올 때 까지 기다림
+    while(m_b_wait_for_calib)
     {
-//        std::cout << ".." << std::endl;
         cv::imshow("EyeGun", m_frame);
 
         this->inputKeyboard();
-
-        if (m_b_run == false)
-            this->quit();
+        this->checkButton();
     }
     // 모터가 향한 곳의 데이터 입력
     m_calibrator.setData(m_point.x, m_point.y, m_v_angles[0].thetaH, m_v_angles[0].thetaV);
@@ -81,15 +90,14 @@ void EyeGun::calibrate()
     m_motor_V.setValue(m_v_angles[1].thetaV);   // 모터 위치 조정
     m_motor_V.update();
 
-    m_b_wait = true; // 데이터가 들오올 때 까지 기다림
-    while(m_b_wait)
+    m_b_wait_for_calib = true; // 데이터가 들오올 때 까지 기다림
+    while(m_b_wait_for_calib)
     {
         cv::imshow("EyeGun", m_frame);
 
         this->inputKeyboard();
 
-        if (m_b_run == false)
-            this->quit();
+        this->checkButton();
     }
     // 모터가 향한 곳의 데이터 입력
     m_calibrator.setData(m_point.x, m_point.y, m_v_angles[1].thetaH, m_v_angles[1].thetaV);
@@ -111,18 +119,32 @@ void EyeGun::calibrate()
 
 void EyeGun::run()
 {
-    while(m_b_run)
-    {
-        cv::imshow("EyeGun", m_frame);
 
-        m_angle = m_calibrator.calculate(m_point.x, m_point.y);
-        m_motor_H.setValue(m_angle.thetaH);
-        m_motor_H.update();
-        m_motor_V.setValue(m_angle.thetaV);
-        m_motor_V.update();
+    cv::imshow("EyeGun", m_frame);
 
-        this->inputKeyboard();
-    }
+    m_angle = m_calibrator.calculate(m_point.x, m_point.y);
+    m_motor_H.setValue(m_angle.thetaH);
+    m_motor_H.update();
+    m_motor_V.setValue(m_angle.thetaV);
+    m_motor_V.update();
+
+    if(m_switch.check())
+        std::cout << "Push" << std::endl;
+
+    this->inputKeyboard();
+
+    this->checkButton();
+
+}
+
+
+void EyeGun::restart()
+{
+    m_e_status = WAIT_MODE;
+    m_b_wait_for_calib = false;
+
+    if(m_calibrator.getCondition())
+        m_calibrator.init();
 }
 
 
@@ -142,7 +164,9 @@ void EyeGun::inputKeyboard()
     switch(cv::waitKey(1000/m_i_fps))
     {
     case 27:
-        m_b_run = false;
+        this->restart();
+        m_b_wait_for_calib = false;
+        m_e_status = GOODBYE;
         break;
     }
 }
@@ -157,6 +181,13 @@ int EyeGun::getScreenWidth()
 int EyeGun::getScreenHeight()
 {
     return m_i_screen_height;
+}
+
+
+void EyeGun::checkButton()
+{
+    if(m_switch.check() == false)
+        this->restart();
 }
 
 
@@ -186,5 +217,5 @@ void EyeGun::tempSetPoint(int x, int y)
     m_point.y = y;
 
     std::cout << "Input: (" << x << ", " << y << ")" << std::endl;
-    m_b_wait = false;
+    m_b_wait_for_calib = false;
 }

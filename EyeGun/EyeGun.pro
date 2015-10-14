@@ -20,7 +20,8 @@ SOURCES += main.cpp \
     motor.cpp \
     laser.cpp \
     eyegun.cpp \
-    eyeguncalibrator.cpp
+    eyeguncalibrator.cpp \
+    trigger.cpp
 
 LIBS += -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lwiringPi
 INCLUDEPATH += /usr/local/include
@@ -29,4 +30,5 @@ HEADERS += \
     motor.h \
     laser.h \
     eyegun.h \
-    eyeguncalibrator.hpp
+    eyeguncalibrator.hpp \
+    trigger.h

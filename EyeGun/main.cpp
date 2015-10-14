@@ -13,7 +13,7 @@ static void onMouse(int event, int x, int y, int, void*)
     case CALIBRATE_MODE:
         if (event == cv::EVENT_MOUSEMOVE)
         {
-            std::cout << "Pos : (" << x << ", " << y << ")" << std::endl;
+//            std::cout << "Pos : (" << x << ", " << y << ")" << std::endl;
         }
         else if (event == cv::EVENT_LBUTTONDOWN)
         {
@@ -53,8 +53,26 @@ int main()
     // temp
     cv::setMouseCallback("EyeGun", onMouse, 0);
 
-    eg.calibrate();
-    eg.run();
+    while(1)
+    {
+        switch(eg.getStatus())
+        {
+        case WAIT_MODE:
+            eg.wait();
+            break;
+        case CALIBRATE_MODE:
+            eg.calibrate();
+            break;
+        case RUN_MODE:
+            eg.run();
+            break;
+        default:
+            break;
+        }
+
+        if(eg.getStatus() == GOODBYE)
+            break;
+    }
     eg.quit();
 
     return 0;

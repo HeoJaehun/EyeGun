@@ -6,21 +6,34 @@
 #include <stdlib.h>
 #include <motor.h>
 #include <laser.h>
+#include <trigger.h>
 #include <eyeguncalibrator.hpp>
-enum status {RUN_MODE, CALIBRATE_MODE};
+
+#define PIN_MOTOR_H 18
+#define PIN_MOTOR_V 13
+#define PIN_LASER  15
+#define PIN_BUTTON 10
+#define PIN_SWITCH 4
+
+
+enum status {WAIT_MODE, RUN_MODE, CALIBRATE_MODE, GOODBYE};
 
 class EyeGun
 {
 public:
     EyeGun();
     void init();
+    void wait();
     void calibrate();
     void run();
+    void restart();
     void quit();
+
     void inputKeyboard();
     int getScreenWidth();
     int getScreenHeight();
     enum status getStatus(){return m_e_status;};
+    void checkButton();
 
     void tempSetFirstMotorVal(int val);
     void tempSetSecondMotorVal(int val);
@@ -32,14 +45,15 @@ private:
     Motor m_motor_V;
     Motor m_motor_H;
     Laser m_laser;
+    Trigger m_switch;
+    Trigger m_button;
     EyeGunCalibrator m_calibrator;
 
     int m_i_fps;
     int m_i_screen_width;
     int m_i_screen_height;
 
-    bool m_b_run;
-    bool m_b_wait;
+    bool m_b_wait_for_calib;
 
     vector<eyeGunVector> m_v_points;
     vector<eyeGunAngle> m_v_angles;

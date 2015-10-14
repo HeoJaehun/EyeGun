@@ -25,6 +25,7 @@ void EyeGunCalibrator::init()
 {
     m_v_srcPoint.clear();
     m_v_srcAngle.clear();
+    m_v_srcData.clear();
     m_b_ready = false;
 }
 
