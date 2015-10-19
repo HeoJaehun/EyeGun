@@ -10,6 +10,10 @@ EyeGun::EyeGun()
 
 void EyeGun::init()
 {
+    m_motor_H.setup(PIN_MOTOR_H);
+    m_motor_H.setLimit(60, 120);
+    m_motor_H.setValue(90);
+    m_motor_H.update();
 
     m_motor_V.setup(19);    // 13번 핀을 사용하기 위한 설정
     m_motor_V.setup(PIN_MOTOR_V);
@@ -17,21 +21,17 @@ void EyeGun::init()
     m_motor_V.setValue(90);
     m_motor_V.update();
 
-    m_motor_H.setup(PIN_MOTOR_H);
-    m_motor_H.setLimit(60, 120);
-    m_motor_H.setValue(90);
-    m_motor_H.update();
-
     m_laser.setup(PIN_LASER);
+    m_button_led.setup(PIN_BUTTON_LED);
 
-    m_switch.setup(PIN_SWITCH);
+    m_head_switch.setup(PIN_HEADSWITCH);
     m_button.setup(PIN_BUTTON);
 
     m_calibrator.init();
     m_v_points.clear();
     m_v_angles.clear();
 
-    eyeGunAngle angle;
+    eyeAngle angle;
     angle.thetaH = 60;
     angle.thetaV = 60;
     m_v_angles.push_back(angle);
@@ -44,21 +44,22 @@ void EyeGun::init()
     m_frame = cv::Mat(m_i_screen_height, m_i_screen_width, CV_8UC1, cv::Scalar(0));
 
     cv::namedWindow("EyeGun");
-
 }
 
 
 void EyeGun::wait()
 {
-    if(m_switch.check())
+    if(m_head_switch.check())
     {
         m_e_status = CALIBRATE_MODE;
+        m_button_led.on();
+        m_laser.on();
         return;
     }
 }
 
 
-void EyeGun::calibrate()
+void EyeGun::calib()
 {
 
     /*
@@ -72,18 +73,47 @@ void EyeGun::calibrate()
     m_b_wait_for_calib = true; // 데이터가 들오올 때 까지 기다림
     while(m_b_wait_for_calib)
     {
+
+#ifdef DEBUG
         cv::imshow("EyeGun", m_frame);
+#endif
 
         this->inputKeyboard();
-        this->checkButton();
+        this->checkHeadSwitch();
     }
     // 모터가 향한 곳의 데이터 입력
-    m_calibrator.setData(m_point.x, m_point.y, m_v_angles[0].thetaH, m_v_angles[0].thetaV);
+    m_calibrator.setData(m_point, Point2f(0, 0));   // P1(0, 0)
+
+#ifdef DEBUG
     std::cout << "Done: point 1" << std::endl;
+#endif
 
 
     /*
-     *두번째 점(오른쪽 하단) 데이터 입력
+     *두번째 점(오른쪽 상단) 데이터 입력
+     */
+    m_motor_H.setValue(m_v_angles[1].thetaH);   // 모터 위치 조정
+    m_motor_H.update();
+    m_motor_V.setValue(m_v_angles[0].thetaV);   // 모터 위치 조정
+    m_motor_V.update();
+
+    m_b_wait_for_calib = true; // 데이터가 들오올 때 까지 기다림
+    while(m_b_wait_for_calib)
+    {
+        cv::imshow("EyeGun", m_frame);
+
+        this->inputKeyboard();
+        this->checkHeadSwitch();
+    }
+    // 모터가 향한 곳의 데이터 입력
+    m_calibrator.setData(m_point, Point2f(2.0/sqrt(3), 0));
+
+#ifdef DEBUG
+    std::cout << "Done: point 2" << std::endl;
+#endif
+
+    /*
+     *세번째 점(오른쪽 하단) 데이터 입력
      */
     m_motor_H.setValue(m_v_angles[1].thetaH);   // 모터 위치 조정
     m_motor_H.update();
@@ -97,14 +127,44 @@ void EyeGun::calibrate()
 
         this->inputKeyboard();
 
-        this->checkButton();
+        this->checkHeadSwitch();
     }
     // 모터가 향한 곳의 데이터 입력
-    m_calibrator.setData(m_point.x, m_point.y, m_v_angles[1].thetaH, m_v_angles[1].thetaV);
-    std::cout << "Done: point 2" << std::endl;
+    m_calibrator.setData(m_point, Point2f(2.0/sqrt(3), 2.0/sqrt(3)));
+
+#ifdef DEBUG
+    std::cout << "Done: point 3" << std::endl;
+#endif
+
+
+    /*
+     *네번째 점(왼쪽 하단) 데이터 입력
+     */
+    m_motor_H.setValue(m_v_angles[0].thetaH);   // 모터 위치 조정
+    m_motor_H.update();
+    m_motor_V.setValue(m_v_angles[1].thetaV);   // 모터 위치 조정
+    m_motor_V.update();
+
+    m_b_wait_for_calib = true; // 데이터가 들오올 때 까지 기다림
+    while(m_b_wait_for_calib)
+    {
+        cv::imshow("EyeGun", m_frame);
+
+        this->inputKeyboard();
+
+        this->checkHeadSwitch();
+    }
+    // 모터가 향한 곳의 데이터 입력
+    m_calibrator.setData(m_point, Point2f(0, 2.0/sqrt(3)));
+
+#ifdef DEBUG
+    std::cout << "Done: point 4" << std::endl;
+#endif
+
 
     if (m_calibrator.getCondition())
     {
+        m_calibrator.calculate();
         m_e_status = RUN_MODE;
 
         m_motor_H.setValue(90);   // 모터 위치 조정
@@ -120,21 +180,21 @@ void EyeGun::calibrate()
 void EyeGun::run()
 {
 
+#ifdef DEBUG
     cv::imshow("EyeGun", m_frame);
+#endif
 
-    m_angle = m_calibrator.calculate(m_point.x, m_point.y);
+    m_angle = m_calibrator.calib(m_point);
+
+    cout << "H: " << m_angle.thetaH << "   V: " << m_angle.thetaV << endl;
+
     m_motor_H.setValue(m_angle.thetaH);
     m_motor_H.update();
     m_motor_V.setValue(m_angle.thetaV);
     m_motor_V.update();
 
-    if(m_switch.check())
-        std::cout << "Push" << std::endl;
-
     this->inputKeyboard();
-
-    this->checkButton();
-
+    this->checkHeadSwitch();
 }
 
 
@@ -142,6 +202,13 @@ void EyeGun::restart()
 {
     m_e_status = WAIT_MODE;
     m_b_wait_for_calib = false;
+    m_laser.off();
+    m_button_led.off();
+
+    m_motor_H.setValue(90);
+    m_motor_H.update();
+    m_motor_V.setValue(90);
+    m_motor_V.update();
 
     if(m_calibrator.getCondition())
         m_calibrator.init();
@@ -184,9 +251,9 @@ int EyeGun::getScreenHeight()
 }
 
 
-void EyeGun::checkButton()
+void EyeGun::checkHeadSwitch()
 {
-    if(m_switch.check() == false)
+    if(m_head_switch.check() == false)
         this->restart();
 }
 

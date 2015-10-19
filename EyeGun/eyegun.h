@@ -13,7 +13,10 @@
 #define PIN_MOTOR_V 13
 #define PIN_LASER  15
 #define PIN_BUTTON 10
-#define PIN_SWITCH 4
+#define PIN_BUTTON_LED 12
+#define PIN_HEADSWITCH 25
+
+#define DEBUG
 
 
 enum status {WAIT_MODE, RUN_MODE, CALIBRATE_MODE, GOODBYE};
@@ -24,7 +27,7 @@ public:
     EyeGun();
     void init();
     void wait();
-    void calibrate();
+    void calib();
     void run();
     void restart();
     void quit();
@@ -33,7 +36,7 @@ public:
     int getScreenWidth();
     int getScreenHeight();
     enum status getStatus(){return m_e_status;};
-    void checkButton();
+    void checkHeadSwitch();
 
     void tempSetFirstMotorVal(int val);
     void tempSetSecondMotorVal(int val);
@@ -45,7 +48,8 @@ private:
     Motor m_motor_V;
     Motor m_motor_H;
     Laser m_laser;
-    Trigger m_switch;
+    Laser m_button_led;
+    Trigger m_head_switch;
     Trigger m_button;
     EyeGunCalibrator m_calibrator;
 
@@ -55,11 +59,10 @@ private:
 
     bool m_b_wait_for_calib;
 
-    vector<eyeGunVector> m_v_points;
-    vector<eyeGunAngle> m_v_angles;
-    eyeGunVector m_point;
-    eyeGunAngle m_angle;
-
+    vector<Point2f> m_v_points;
+    vector<eyeAngle> m_v_angles;
+    Point2f m_point;
+    eyeAngle m_angle;
     enum status m_e_status;
 };
 

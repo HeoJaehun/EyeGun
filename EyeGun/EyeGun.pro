@@ -23,7 +23,7 @@ SOURCES += main.cpp \
     eyeguncalibrator.cpp \
     trigger.cpp
 
-LIBS += -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lwiringPi
+LIBS += -L/usr/local/lib -lopencv_core -lopencv_highgui -lopencv_imgproc -lopencv_calib3d -lwiringPi
 INCLUDEPATH += /usr/local/include
 
 HEADERS += \

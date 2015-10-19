@@ -11,19 +11,17 @@
 
 #include <iostream>
 #include <vector>
+#include <opencv2/opencv.hpp>
 
+#define DEBUG
 
 using namespace std;
-
-typedef struct {
-    int x;
-    int y;
-} eyeGunVector;
+using namespace cv;
 
 typedef struct {
     int thetaH;
     int thetaV;
-} eyeGunAngle;
+} eyeAngle;
 
 
 class EyeGunCalibrator{
@@ -32,16 +30,15 @@ public:
     ~EyeGunCalibrator();
     
     void init();
-    eyeGunAngle calculate(int x, int y);
-    void setPoint(int x, int y);
-    void setAngle(int angle);
-    void setData(int x, int y, int angleH, int angleV);
+    void calculate();
+    eyeAngle calib(Point2f src);
+    void setData(Point2f src_point, Point2f dst_point);
     bool getCondition();
     
 private:
-    vector<eyeGunVector> m_v_srcPoint;
-    vector<int> m_v_srcAngle;
-    vector<pair<eyeGunVector, eyeGunAngle> > m_v_srcData;
+    vector<Point2f> m_v_src_points;
+    vector<Point2f> m_v_dst_points;
+    Mat m_m_homography;
     
     bool m_b_ready;
 };

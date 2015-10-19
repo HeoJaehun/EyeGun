@@ -23,99 +23,63 @@ EyeGunCalibrator::~EyeGunCalibrator()
 
 void EyeGunCalibrator::init()
 {
-    m_v_srcPoint.clear();
-    m_v_srcAngle.clear();
-    m_v_srcData.clear();
+    m_v_src_points.clear();
+    m_v_dst_points.clear();
+    m_m_homography.zeros(Size(3, 3), CV_64FC1);
     m_b_ready = false;
 }
 
 
-eyeGunAngle EyeGunCalibrator::calculate(int x, int y)
+void EyeGunCalibrator::calculate()
 {
-    if (m_v_srcData.size() != 2) {
-        cerr << "Check data size!" << endl;
-        eyeGunAngle result;
-        result.thetaH = 90;
-        result.thetaV = 90;
-        return result;
-    }
-    
-    /*
-     
-     first data: x1, y1, angle1
-     second data: x2, y2, angle2
-     
-     alpha = (X - x1)/(x2 - x1)
-     theta = alpha * (angle2 - angle1) + angle1
-     
-     */
-    
-    float alphaH;
-    float alphaV;
-    eyeGunAngle result;
-    
-    alphaH = (float)(x - m_v_srcData[0].first.x)/(m_v_srcData[1].first.x - m_v_srcData[0].first.x);
-    result.thetaH = alphaH * (m_v_srcData[1].second.thetaH - m_v_srcData[0].second.thetaH) + m_v_srcData[0].second.thetaH;
-    
-    alphaV = (float)(y - m_v_srcData[0].first.y)/(m_v_srcData[1].first.y - m_v_srcData[0].first.y);
-    result.thetaV = alphaV * (m_v_srcData[1].second.thetaV - m_v_srcData[0].second.thetaV) + m_v_srcData[0].second.thetaV;
-    
-    cout << "thetaH: " << result.thetaH << "   thetaV: " << result.thetaV << endl;
-    
-    
-    
-    return result;
+#ifdef DEBUG
+    cout << "Source Points:\n" << m_v_src_points << endl;
+    cout << "Destination Points:\n" << m_v_dst_points << endl;
+#endif
+
+    m_m_homography = findHomography(m_v_src_points, m_v_dst_points);
+
+#ifdef DEBUG
+    cout << "Homography:\n" << m_m_homography << endl;
+#endif
+}
+
+eyeAngle EyeGunCalibrator::calib(Point2f src)
+{
+    Mat src_mat = Mat::zeros(3, 1, CV_64FC1);
+    Mat dst_mat = Mat::zeros(3, 1, CV_64FC1);
+    Point2f dst_point;
+    eyeAngle dst_theta;
+
+    src_mat.at<float>(0) = (float)src.x;
+    src_mat.at<float>(1) = (float)src.y;
+    src_mat.at<float>(2) = 1.0;
+
+    gemm(m_m_homography, src_mat, 1, 0, 0, dst_mat);
+
+    dst_point.x = dst_mat.at<float>(0);
+    dst_point.y = dst_mat.at<float>(1);
+//    dst_point.x = dst_mat.at<float>(0) / dst_mat.at<float>(2);
+//    dst_point.y = dst_mat.at<float>(1) / dst_mat.at<float>(2);
+
+#ifdef DEBUG
+    cout << "dst_point:\n" << dst_point << endl;
+#endif
+
+    dst_theta.thetaH = (dst_point.x/(2.0/sqrt(3)))*60+60;
+    dst_theta.thetaV = (dst_point.y/(2.0/sqrt(3)))*60+60;
+
+    return dst_theta;
 }
 
 
-void EyeGunCalibrator::setPoint(int x, int y)
+void EyeGunCalibrator::setData(Point2f src_point, Point2f dst_point)
 {
-    if (m_v_srcPoint.size() >= 2) {
-        cerr << "Too many points" << endl;
-        return;
-    }
-    
-    eyeGunVector point;
-    point.x = x;
-    point.y = y;
-    m_v_srcPoint.push_back(point);
-}
+    m_v_src_points.push_back(src_point);
+    m_v_dst_points.push_back(dst_point);
 
-
-void EyeGunCalibrator::setAngle(int angle)
-{
-    if (m_v_srcPoint.size() >= 2) {
-        cerr << "Too many points" << endl;
-        return;
-    }
-    
-    m_v_srcAngle.push_back(angle);
-}
-
-void EyeGunCalibrator::setData(int x, int y, int angleH, int angleV)
-{
-    if (m_v_srcData.size() >= 2) {
-        cerr << "Too many data" << endl;
-        return;
-    }
-    
-    eyeGunVector point;
-    point.x = x;
-    point.y = y;
-    
-    eyeGunAngle angle;
-    angle.thetaH = angleH;
-    angle.thetaV = angleV;
-    
-    pair<eyeGunVector, eyeGunAngle> tempData;
-    tempData.first = point;
-    tempData.second = angle;
-    
-    m_v_srcData.push_back(tempData);
-    
-    if (m_v_srcData.size() == 2) {
+    if (m_v_src_points.size() == 4)
         m_b_ready = true;
-    }
 }
 
 

@@ -61,7 +61,7 @@ int main()
             eg.wait();
             break;
         case CALIBRATE_MODE:
-            eg.calibrate();
+            eg.calib();
             break;
         case RUN_MODE:
             eg.run();
